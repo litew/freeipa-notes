@@ -1,0 +1,211 @@
+[%hardbreaks]
+
+`PER HOST` - настройка выполняется на каждом из хостов FreeIPA
+`GLOBAL` - настройка включается на одном сервере, автоматически синхронизируется глобально на все хосты FreeIPA
+
+
+## Ограничение области видимости LDAP-каталога rootDSE-записью при использовании анонимного бинда
+`PER HOST`
+  
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/linux_domain_identity_authentication_and_policy_guide/disabling-anon-binds
+```
+ldapmodify -x -D "cn=Directory Manager" -W -h localhost -p 389 -ZZ
+
+Enter LDAP Password:
+dn: cn=config
+changetype: modify
+replace: nsslapd-allow-anonymous-access
+nsslapd-allow-anonymous-access: rootdse
+
+[ENTER]
+[ENTER]
+[CTRL-D]
+
+systemctl restart dirsrv.target
+```
+
+
+## Включение журнала аудита 389ds
+`PER HOST`
+  
+https://access.redhat.com/solutions/772563
+
+https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html/configuration_command_and_file_reference/core_server_configuration_reference#cnconfig-nsslapd_auditlog_logging_enabled_Audit_Log_Enable_Logging
+
+https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html/configuration_command_and_file_reference/core_server_configuration_reference#cnconfig-nsslapd_auditlog_logrotationtime_Audit_Log_Rotation_Time
+
+https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html/configuration_command_and_file_reference/core_server_configuration_reference#cnconfig-nsslapd_auditlog_logrotationtimeunit_Audit_Log_Rotation_Time_Unit
+
+https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html/configuration_command_and_file_reference/core_server_configuration_reference#cnconfig-nsslapd_auditlog_maxlogsize_Audit_Log_Maximum_Log_Size
+
+```
+dsconf FREEIPA.DEV config replace nsslapd-auditlog-logging-enabled=on
+dsconf FREEIPA.DEV config replace nsslapd-auditlog-logrotationtime=12
+dsconf FREEIPA.DEV config replace nsslapd-auditlog-logrotationtimeunit=week
+dsconf FREEIPA.DEV config replace nsslapd-auditlog-maxlogsize=50
+```
+
+## Включение отображения доп. атрибутов изменяемого объекта в журнале аудита
+`PER HOST`
+  
+https://bugzilla.redhat.com/show_bug.cgi?id=2136610
+
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/8.8_release_notes/index
+```
+dsconf FREEIPA.DEV config replace nsslapd-auditlog-display-attrs=cn,uidnumber,mail
+```
+
+## Отключение ipaNTHash
+`GLOBAL`
+
+https://book.hacktricks.xyz/linux-hardening/freeipa-pentesting#482b
+
+https://gist.github.com/abbra/a74e171d791cf90113b0272b78919987?permalink_comment_id=3443169#gistcomment-3443169
+```
+веб-интерфейс
+IPA Server ->
+  Configuration ->
+    AllowNThash: false
+```
+
+
+## Включение отслеживания последней успешной аутентификации Kerberos
+`GLOBAL`
+
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_identity_management/managing-user-passwords-in-idm_configuring-and-managing-idm#enabling-the-tracking-of-last-successful-kerberos-authentication-for-users-in-idm_managing-user-passwords-in-idm
+```
+веб-интерфейс
+IPA Server ->
+  Configuration ->
+    KDC:Disable Last Success: false
+```
+
+
+## Включение логирования смены паролей через веб-интерфейс (ipa_pwd_extop)
+`PER HOST`
+  
+https://bugzilla.redhat.com/show_bug.cgi?id=2055465#c1 , https://access.redhat.com/documentation/en-us/red_hat_directory_server/11/html-single/configuration_command_and_file_reference/index#List_of_Attributes_Common_to_All_Plug_ins-nsslapd_logaudit
+```
+ldapmodify -x -D "cn=Directory Manager" -W -h localhost -p 389 -ZZ
+dn: cn=ipa_pwd_extop,cn=plugins,cn=config
+changetype: modify
+replace: nsslapd-logaudit
+nsslapd-logaudit: on
+
+[ENTER]
+[ENTER]
+[CTRL-D]
+```
+
+Проверка:
+```
+dsconf <SLAPD-INSTANCE> plugin show ipa_pwd_extop
+
+<SLAPD-INSTANCE> можно посмотреть командой dsctl -l
+```
+
+
+## Отключение прав на произвольный маппинг публичных SSH-ключей и сертификатов для непривилегированных УЗ (Self Service Permissions)
+`GLOBAL`
+
+```
+веб-интерфейс
+IPA Server ->
+  Self Service Permissions ->
+    Users can manage their own SSH public keys (удалить)
+    Users can manage their own X.509 certificates (удалить)
+    Users can manage their own X.509 certificate identity mappings (удалить)
+```
+> Данные разрешения требуется отключать повторно после каждого обновления пакетов FreeIPA
+
+
+## Отключение возможности выбора типа аутентификации пользователю (Disable per-user override)
+`GLOBAL`
+
+```
+веб-интерфейс
+IPA Server ->
+  Configuration ->
+    Disable per-user override: true
+```
+
+
+## Указание в парольной политике количества разных классов символов. (krbPwdMinDiffChars)
+`GLOBAL`
+
+https://www.freeipa.org/page/V2/Group_Password_Policy
+
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_identity_management/defining-idm-password-policies_configuring-and-managing-idm#password-policies-in-idm_defining-idm-password-policies
+```
+веб-интерфейс
+IPA Server ->
+  Policy ->
+    Password Policies ->
+      global_policy (или любая другая кастомная политика для пользователей) ->
+        Character classes: [ 1, 2, 3, 4 ]
+```
+
+> Sets the minimum number of different classes, or types, of character that must exist in a password before it is considered valid.
+> For example, setting this value to 3 requires that any password must have characters from at least three categories in order to be approved. The default value is zero (0), meaning there are no required classes.
+>
+> There are six character classes:
+> - Upper-case characters
+> - Lower-case characters
+> - Digits
+> - Special characters (for example, punctuation)
+> - 8-bit characters (characters whose decimal code starts at 128 or below)
+> - Number of repeated characters
+>
+> This weights in the opposite direction, so that too many repeated characters does meet the quorum to satisfy the "level" expressed by krbPwdMinDiffChars.
+
+
+## Отключение в парольной политике входа под выключенной УЗ в связанные с FreeIPA тех. решения  (grace login limit)
+`GLOBAL`
+
+https://freeipa.readthedocs.io/en/latest/designs/ldap_grace_period.html
+
+https://bugzilla.redhat.com/show_bug.cgi?id=782917
+```
+веб-интерфейс
+IPA Server ->
+  Policy ->
+    Password Policies ->
+      global_policy (или любая другая кастомная политика для пользователей) ->
+        Grace login limit: [ -1, 0, 1-MAXINT ]
+```
+
+> **-1**: IdM grants the user unlimited LDAP binds before the user must reset the password. This is the default value, which matches the previous behavior;
+>
+> **0**: This value disables all LDAP binds once a password is expired. In effect, the users must reset their password immediately;
+>
+>**1-MAXINT**: The value entered allows exactly that many binds post-expiration.
+
+
+## Перевод сервисных УЗ в контейнер sysaccounts
+`GLOBAL`
+  
+https://www.freeipa.org/page/HowTo/LDAP#system-accounts
+
+```
+ldapmodify -x -D "cn=Directory Manager" -W -h localhost -p 389 -ZZ
+
+Enter LDAP Password:
+
+dn: uid=system,cn=sysaccounts,cn=etc,dc=example,dc=com
+changetype: add
+objectclass: account
+objectclass: simplesecurityobject
+uid: system
+userPassword: secret123
+passwordExpirationTime: 20380119031407Z
+nsIdleTimeout: 0
+
+[ENTER]
+[ENTER]
+[CTRL-D]
+```
+
+## Автоматическое отключение неактивных пользователей (ipa-dsu)
+`GLOBAL`
+  
+https://freeipa.readthedocs.io/en/latest/designs/disable-stale-users.html
