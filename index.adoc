@@ -1,5 +1,5 @@
 image:https://img.shields.io/github/last-commit/litew/freeipa-notes/main?style=for-the-badge[link="https://github.com/litew/freeipa-notes",120, float=right]
 
-= xref:index.html[freeipa notes]
+== xref:index.html[freeipa notes]
 
 . xref:hardening.html[Харденинг]
