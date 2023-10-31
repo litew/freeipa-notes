@@ -1,0 +1,4 @@
+= FreeIPA notes
+
+image:https://github.com/litew/freeipa-notes/actions/workflows/asciidoctor-ghpages.yml/badge.svg?branch=main[https://github.com/litew/freeipa-notes/actions/workflows/asciidoctor-ghpages.yml]
+image:https://github.com/litew/freeipa-notes/actions/workflows/pages/pages-build-deployment/badge.svg[https://github.com/litew/freeipa-notes/actions/workflows/pages/pages-build-deployment]
