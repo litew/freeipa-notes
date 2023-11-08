@@ -129,13 +129,15 @@ IPA Server ->
 
 - https://www.freeipa.org/page/V2/Group_Password_Policy
 - https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_identity_management/defining-idm-password-policies_configuring-and-managing-idm#password-policies-in-idm_defining-idm-password-policies
+- https://github.com/freeipa/freeipa/blob/master/ipaserver/plugins/pwpolicy.py#L330-L335
+- https://github.com/krb5/krb5/blob/master/src/lib/kadm5/srv/server_misc.c#L73-L102
 ```
 веб-интерфейс
 IPA Server ->
   Policy ->
     Password Policies ->
       global_policy (или любая другая кастомная политика для пользователей) ->
-        Character classes: [ 1, 2, 3, 4 ]
+        Character classes: [ 0, 1, 2, 3, 4, 5 ]
 ```
 
 > Sets the minimum number of different classes, or types, of character that must exist in a password before it is considered valid.
